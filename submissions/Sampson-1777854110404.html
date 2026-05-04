@@ -1,0 +1,466 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Record Collection Organizer</title>
+    <style>
+        /* Base Light Theme */
+        :root {
+            --bg-color: #f4f4f9;
+            --text-color: #333;
+            --container-bg: #fff;
+            --header-bg: #2c3e50;
+            --header-hover: #1a252f;
+            --border-color: #ccc;
+            --input-bg: #fff;
+            --row-hover: #f1f1f1;
+            --count-bg: #ecf0f1;
+        }
+
+        /* Dark Theme Overrides */
+        body.dark-mode {
+            --bg-color: #121212;
+            --text-color: #e0e0e0;
+            --container-bg: #1e1e1e;
+            --header-bg: #000000;
+            --header-hover: #333333;
+            --border-color: #444;
+            --input-bg: #2c2c2c;
+            --row-hover: #2a2a2a;
+            --count-bg: #333;
+        }
+
+        body { 
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
+            max-width: 1200px; /* Widened for more columns */
+            margin: 20px auto; 
+            padding: 20px; 
+            background-color: var(--bg-color); 
+            color: var(--text-color); 
+            transition: background-color 0.3s, color 0.3s;
+        }
+
+        .header-area {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        h1 { color: inherit; }
+
+        .theme-toggle {
+            background-color: #8e44ad;
+            color: white;
+            border: none;
+            padding: 8px 15px;
+            border-radius: 20px;
+            cursor: pointer;
+            font-weight: bold;
+            font-size: 14px;
+        }
+        .theme-toggle:hover { background-color: #9b59b6; }
+
+        .form-container, .controls-container { 
+            background: var(--container-bg); 
+            padding: 20px; 
+            border-radius: 8px; 
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1); 
+            margin-bottom: 20px; 
+        }
+
+        .controls-container {
+            padding: 15px 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 20px;
+        }
+
+        .search-input { flex-grow: 1; }
+
+        .record-count {
+            font-weight: bold;
+            background: var(--count-bg);
+            padding: 10px 15px;
+            border-radius: 4px;
+            white-space: nowrap;
+        }
+
+        .form-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+        }
+
+        .form-group { margin-bottom: 5px; }
+        
+        label { 
+            display: block; 
+            font-weight: bold; 
+            margin-bottom: 5px; 
+            font-size: 13px;
+        }
+
+        input, select { 
+            width: 100%; 
+            padding: 8px; 
+            box-sizing: border-box; 
+            border: 1px solid var(--border-color); 
+            background: var(--input-bg);
+            color: var(--text-color);
+            border-radius: 4px; 
+            font-size: 14px;
+        }
+
+        .full-width { grid-column: 1 / -1; }
+
+        button.submit-btn { 
+            background-color: #2980b9; 
+            color: white; 
+            padding: 12px 15px; 
+            border: none; 
+            border-radius: 4px; 
+            cursor: pointer; 
+            font-size: 16px; 
+            width: 100%; 
+            margin-top: 10px;
+            font-weight: bold;
+        }
+        button.submit-btn:hover { background-color: #3498db; }
+
+        .table-responsive {
+            width: 100%;
+            overflow-x: auto; /* Allows table to scroll if it gets too wide */
+            background: var(--container-bg); 
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1); 
+            border-radius: 8px;
+        }
+
+        table { 
+            width: 100%; 
+            border-collapse: collapse; 
+            min-width: 1000px;
+        }
+
+        th, td { 
+            padding: 12px 10px; 
+            border-bottom: 1px solid var(--border-color); 
+            text-align: left; 
+            font-size: 14px;
+        }
+
+        th { 
+            background-color: var(--header-bg); 
+            color: white; 
+            cursor: pointer;
+            user-select: none;
+            white-space: nowrap;
+        }
+        th:hover { background-color: var(--header-hover); }
+
+        tr:hover { background-color: var(--row-hover); }
+
+        .album-cover {
+            width: 50px;
+            height: 50px;
+            object-fit: cover;
+            border-radius: 4px;
+            background-color: #ddd;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 10px;
+            color: #666;
+            text-align: center;
+        }
+
+        .action-btns {
+            display: flex;
+            gap: 5px;
+            flex-direction: column;
+        }
+
+        .btn {
+            padding: 5px 10px;
+            font-size: 12px;
+            border: none;
+            border-radius: 3px;
+            cursor: pointer;
+            color: white;
+            font-weight: bold;
+        }
+
+        .play-btn { background-color: #27ae60; }
+        .play-btn:hover { background-color: #2ecc71; }
+        
+        .delete-btn { background-color: #e74c3c; }
+        .delete-btn:hover { background-color: #c0392b; }
+
+        .sort-icon { font-size: 10px; margin-left: 3px; opacity: 0.7; }
+        .stars { color: #f1c40f; letter-spacing: 2px;}
+    </style>
+</head>
+<body>
+
+    <div class="header-area">
+        <h1>Record Collection Organizer</h1>
+        <button class="theme-toggle" onclick="toggleTheme()">🌓 Toggle Dark Mode</button>
+    </div>
+
+    <div class="form-container">
+        <form id="recordForm">
+            <div class="form-grid">
+                <div class="form-group"><label>Album Name:</label><input type="text" id="album" required placeholder="Abbey Road"></div>
+                <div class="form-group"><label>Artist Name:</label><input type="text" id="artist" required placeholder="The Beatles"></div>
+                <div class="form-group"><label>Release Year:</label><input type="number" id="year" required placeholder="1969"></div>
+                <div class="form-group"><label>Genre:</label><input type="text" id="genre" required placeholder="Classic Rock"></div>
+                
+                <div class="form-group">
+                    <label>Format:</label>
+                    <select id="format" required>
+                        <option value="Album">Album</option>
+                        <option value="EP">EP</option>
+                        <option value="Single">Single</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Condition:</label>
+                    <select id="condition" required>
+                        <option value="Mint">Mint</option>
+                        <option value="Near Mint">Near Mint</option>
+                        <option value="Excellent">Excellent</option>
+                        <option value="Very Good">Very Good</option>
+                        <option value="Good">Good</option>
+                        <option value="Fair">Fair</option>
+                        <option value="Poor">Poor</option>
+                    </select>
+                </div>
+
+                <div class="form-group"><label>Variant / Notes:</label><input type="text" id="notes" placeholder="e.g. 180g, Gatefold, Red Vinyl"></div>
+                <div class="form-group"><label>Cover Art URL:</label><input type="url" id="coverUrl" placeholder="https://link-to-image.jpg"></div>
+                <div class="form-group"><label>Purchase Price ($):</label><input type="number" step="0.01" id="price" placeholder="25.00"></div>
+                <div class="form-group"><label>Estimated Value ($):</label><input type="number" step="0.01" id="value" placeholder="40.00"></div>
+                
+                <div class="form-group"><label>Standout Track:</label><input type="text" id="track" placeholder="e.g. Come Together"></div>
+                <div class="form-group">
+                    <label>Personal Rating:</label>
+                    <select id="rating">
+                        <option value="0">Unrated</option>
+                        <option value="5">⭐⭐⭐⭐⭐ (Masterpiece)</option>
+                        <option value="4">⭐⭐⭐⭐ (Great)</option>
+                        <option value="3">⭐⭐⭐ (Good)</option>
+                        <option value="2">⭐⭐ (Okay)</option>
+                        <option value="1">⭐ (Not for me)</option>
+                    </select>
+                </div>
+
+                <div class="form-group full-width">
+                    <button type="submit" class="submit-btn">Add Record to Collection</button>
+                </div>
+            </div>
+        </form>
+    </div>
+
+    <div class="controls-container">
+        <div class="search-input">
+            <input type="text" id="searchInput" placeholder="Search by album, artist, genre, or notes..." onkeyup="renderRecords()">
+        </div>
+        <div class="record-count" id="countDisplay">Total Records: 0</div>
+    </div>
+
+    <div class="table-responsive">
+        <table>
+            <thead>
+                <tr>
+                    <th>Cover</th>
+                    <th onclick="setSort('album')">Album <span class="sort-icon">&#x21D5;</span></th>
+                    <th onclick="setSort('artist')">Artist <span class="sort-icon">&#x21D5;</span></th>
+                    <th onclick="setSort('year')">Year <span class="sort-icon">&#x21D5;</span></th>
+                    <th onclick="setSort('details')">Details <span class="sort-icon">&#x21D5;</span></th>
+                    <th onclick="setSort('financials')">Paid / Value <span class="sort-icon">&#x21D5;</span></th>
+                    <th onclick="setSort('rating')">Rating <span class="sort-icon">&#x21D5;</span></th>
+                    <th onclick="setSort('track')">Top Track <span class="sort-icon">&#x21D5;</span></th>
+                    <th onclick="setSort('lastPlayedDate')">Last Played <span class="sort-icon">&#x21D5;</span></th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody id="recordList">
+                </tbody>
+        </table>
+    </div>
+
+    <script>
+        // Initialize Theme
+        if(localStorage.getItem('darkMode') === 'true') {
+            document.body.classList.add('dark-mode');
+        }
+
+        function toggleTheme() {
+            document.body.classList.toggle('dark-mode');
+            localStorage.setItem('darkMode', document.body.classList.contains('dark-mode'));
+        }
+
+        // Load & Upgrade old records with new fields
+        let records = JSON.parse(localStorage.getItem('myRecords')) || [];
+        records = records.map(r => ({
+            ...r, 
+            id: r.id || Date.now() + Math.random(),
+            notes: r.notes || '',
+            coverUrl: r.coverUrl || '',
+            price: r.price || '',
+            value: r.value || '',
+            track: r.track || '',
+            rating: r.rating || '0',
+            lastPlayed: r.lastPlayed || 'Never',
+            lastPlayedDate: r.lastPlayedDate || 0 // Hidden timestamp for sorting
+        }));
+        
+        let currentSortColumn = null;
+        let sortAscending = true;
+
+        function setSort(column) {
+            if (currentSortColumn === column) {
+                sortAscending = !sortAscending; 
+            } else {
+                currentSortColumn = column;
+                sortAscending = true; 
+            }
+            renderRecords();
+        }
+
+        function getStars(ratingNum) {
+            if(ratingNum === '0' || !ratingNum) return 'Unrated';
+            return '★'.repeat(parseInt(ratingNum));
+        }
+
+        function renderRecords() {
+            const tbody = document.getElementById('recordList');
+            const countDisplay = document.getElementById('countDisplay');
+            const searchTerm = document.getElementById('searchInput').value.toLowerCase();
+            tbody.innerHTML = ''; 
+            
+            // Filter
+            let filteredRecords = records.filter(r => 
+                r.album.toLowerCase().includes(searchTerm) || 
+                r.artist.toLowerCase().includes(searchTerm) ||
+                r.genre.toLowerCase().includes(searchTerm) ||
+                r.notes.toLowerCase().includes(searchTerm)
+            );
+
+            // Update Counter
+            countDisplay.innerText = searchTerm === "" 
+                ? `Total Records: ${records.length}` 
+                : `Showing ${filteredRecords.length} of ${records.length}`;
+
+            // Sort
+            if (currentSortColumn) {
+                filteredRecords.sort((a, b) => {
+                    let valA, valB;
+
+                    if (currentSortColumn === 'details') { valA = a.format; valB = b.format; }
+                    else if (currentSortColumn === 'financials') { valA = parseFloat(a.price||0); valB = parseFloat(b.price||0); }
+                    else if (['year', 'rating', 'lastPlayedDate'].includes(currentSortColumn)) {
+                        valA = parseFloat(a[currentSortColumn] || 0);
+                        valB = parseFloat(b[currentSortColumn] || 0);
+                    } else {
+                        valA = (a[currentSortColumn] || '').toLowerCase();
+                        valB = (b[currentSortColumn] || '').toLowerCase();
+                    }
+
+                    if (valA < valB) return sortAscending ? -1 : 1;
+                    if (valA > valB) return sortAscending ? 1 : -1;
+                    return 0;
+                });
+            }
+
+            if (filteredRecords.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="10" style="text-align:center; padding: 30px;">No records found. Time to go digging! 🪩</td></tr>`;
+                return;
+            }
+
+            filteredRecords.forEach((record) => {
+                const tr = document.createElement('tr');
+                
+                // Handle Cover Image fallback
+                let coverHtml = record.coverUrl 
+                    ? `<img src="${record.coverUrl}" class="album-cover" alt="Cover">` 
+                    : `<div class="album-cover">No Art</div>`;
+
+                // Handle Financials
+                let priceText = record.price ? `$${parseFloat(record.price).toFixed(2)}` : '--';
+                let valueText = record.value ? `$${parseFloat(record.value).toFixed(2)}` : '--';
+
+                tr.innerHTML = `
+                    <td>${coverHtml}</td>
+                    <td><strong>${record.album}</strong><br><small>${record.genre}</small></td>
+                    <td>${record.artist}</td>
+                    <td>${record.year}</td>
+                    <td>${record.format} • ${record.condition}<br><small><i>${record.notes}</i></small></td>
+                    <td>Paid: ${priceText}<br>Val: ${valueText}</td>
+                    <td class="stars">${getStars(record.rating)}</td>
+                    <td>${record.track || '--'}</td>
+                    <td>${record.lastPlayed}</td>
+                    <td class="action-btns">
+                        <button class="btn play-btn" onclick="markPlayed(${record.id})">Spin It 🎧</button>
+                        <button class="btn delete-btn" onclick="deleteRecord(${record.id})">Remove</button>
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        document.getElementById('recordForm').addEventListener('submit', function(e) {
+            e.preventDefault(); 
+            
+            const newRecord = {
+                id: Date.now(),
+                album: document.getElementById('album').value,
+                artist: document.getElementById('artist').value,
+                year: document.getElementById('year').value,
+                genre: document.getElementById('genre').value,
+                format: document.getElementById('format').value,
+                condition: document.getElementById('condition').value,
+                notes: document.getElementById('notes').value,
+                coverUrl: document.getElementById('coverUrl').value,
+                price: document.getElementById('price').value,
+                value: document.getElementById('value').value,
+                track: document.getElementById('track').value,
+                rating: document.getElementById('rating').value,
+                lastPlayed: 'Never',
+                lastPlayedDate: 0
+            };
+            
+            records.push(newRecord);
+            localStorage.setItem('myRecords', JSON.stringify(records));
+            
+            renderRecords();
+            this.reset();
+        });
+
+        function markPlayed(id) {
+            records = records.map(record => {
+                if(record.id === id) {
+                    const today = new Date();
+                    record.lastPlayed = today.toLocaleDateString(); // e.g. 10/25/2023
+                    record.lastPlayedDate = today.getTime(); // Used for accurate sorting
+                }
+                return record;
+            });
+            localStorage.setItem('myRecords', JSON.stringify(records));
+            renderRecords();
+        }
+
+        function deleteRecord(id) {
+            if(confirm('Are you sure you want to remove this record from your crate?')) {
+                records = records.filter(record => record.id !== id);
+                localStorage.setItem('myRecords', JSON.stringify(records));
+                renderRecords();
+            }
+        }
+
+        // Initial render
+        renderRecords();
+    </script>
+</body>
+</html>
