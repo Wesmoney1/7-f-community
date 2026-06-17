@@ -1,0 +1,203 @@
+let keys = {};
+document.addEventListener("keydown", function(event){
+    keys[event.key] = true;
+});
+document.addEventListener("keyup", function(event){
+    keys[event.key] = false;
+});
+var c = document.getElementById("hello");
+var ctx = c.getContext("2d");
+var chr = {
+    leftx: 100,
+    rightx: 115,
+    topy: 100,
+    boty: 115,
+    width: 15,
+    height: 15
+};
+
+var si = Math.sin(1/8 * Math.PI) * 4;
+var co = Math.cos(1/8 * Math.PI) * 4;
+
+var health = 4;
+var imm = false;
+var dtap = 1;
+var dead = false;
+
+class Block {
+    constructor(leftx, topy, height, width, timestamp) {
+        this.leftx = leftx;
+        this.topy = topy;
+        this.height = height;
+        this.width = width;
+        this.rightx = leftx + width;
+        this.boty = topy + height;
+        this.timestamp = timestamp;
+        this.exist = 1;
+    }
+}
+
+var blocks = [];
+
+function block(leftx, topy, height, width, timestamp) {
+    let cont = new Block(leftx, topy, height, width, timestamp);
+    blocks.push(cont);
+    setTimeout(() => cont.exist = 2, timestamp - 1000);
+    setTimeout(() => cont.exist = 3, timestamp);
+    setTimeout(() => cont.exist = 1, timestamp + 450);
+}
+
+class Ball {
+    constructor(leftx, topy, height, width, timestamp1, timestamp2, xspeed, yspeed, shape) {
+        this.leftx = leftx;
+        this.topy = topy;
+        this.height = height;
+        this.width = width;
+        this.rightx = leftx + width;
+        this.boty = topy + height;
+        this.timestamp1 = timestamp1;
+        this.timestamp2 = timestamp2;
+        this.xspeed = xspeed;
+        this.yspeed = yspeed;
+        this.shape = shape;
+        this.exist = false;
+    }
+}
+
+var balls = [];
+
+function ball(leftx, topy, height, width, timestamp1, timestamp2, xspeed, yspeed, shape = "normal") {
+    let cont = new Ball(leftx, topy, height, width, timestamp1, timestamp2, xspeed, yspeed, shape);
+    balls.push(cont);
+    setTimeout(() => cont.exist = true, timestamp1);
+    setTimeout(() => cont.exist = false, timestamp2);
+}
+
+function burst(x, y, timestamp) {
+    ball(x, y, 50, 50, timestamp, timestamp + 1000, 0, 0);
+    ball(x + 17.5, y + 17.5, 15, 15, timestamp + 1000, timestamp + 10000, 4, 0, "circle");
+    ball(x + 17.5, y + 17.5, 15, 15, timestamp + 1000, timestamp + 10000, 2 * Math.SQRT2, 2 * Math.SQRT2, "circle");
+    ball(x + 17.5, y + 17.5, 15, 15, timestamp + 1000, timestamp + 10000, 0, 4, "circle");
+    ball(x + 17.5, y + 17.5, 15, 15, timestamp + 1000, timestamp + 10000, -2 * Math.SQRT2, 2 * Math.SQRT2, "circle");
+    ball(x + 17.5, y + 17.5, 15, 15, timestamp + 1000, timestamp + 10000, -4, 0, "circle");
+    ball(x + 17.5, y + 17.5, 15, 15, timestamp + 1000, timestamp + 10000, -2 * Math.SQRT2, -2 * Math.SQRT2, "circle");
+    ball(x + 17.5, y + 17.5, 15, 15, timestamp + 1000, timestamp + 10000, 0, -4, "circle");
+    ball(x + 17.5, y + 17.5, 15, 15, timestamp + 1000, timestamp + 10000, 2 * Math.SQRT2, -2 * Math.SQRT2, "circle");
+
+    ball(x + 17.5, y + 17.5, 15, 15, timestamp + 1000, timestamp + 10000, si, co, "circle");
+    ball(x + 17.5, y + 17.5, 15, 15, timestamp + 1000, timestamp + 10000, co, si, "circle");
+    ball(x + 17.5, y + 17.5, 15, 15, timestamp + 1000, timestamp + 10000, -1*si, co, "circle");
+    ball(x + 17.5, y + 17.5, 15, 15, timestamp + 1000, timestamp + 10000, -1*co, si, "circle");
+    ball(x + 17.5, y + 17.5, 15, 15, timestamp + 1000, timestamp + 10000, si, -1*co, "circle");
+    ball(x + 17.5, y + 17.5, 15, 15, timestamp + 1000, timestamp + 10000, co, -1*si, "circle");
+    ball(x + 17.5, y + 17.5, 15, 15, timestamp + 1000, timestamp + 10000, -1*si, -1*co, "circle");
+    ball(x + 17.5, y + 17.5, 15, 15, timestamp + 1000, timestamp + 10000, -1*co, -1*si, "circle");
+}
+
+
+
+
+function death() {
+    ctx.fillStyle = 'rgba(255, 0, 0, 0.5)';
+    ctx.fillRect(0, 0, 1000, 600);
+    if (dead === false) {
+        location.reload();
+        dead = true;
+    }
+}
+
+let lastTimestamp = performance.now(); 
+var frame = function(currentTime) {
+    const delta = (currentTime - lastTimestamp) / 1000;
+    lastTimestamp = currentTime;
+    ctx.clearRect(0, 0, 1000, 600);
+    if (keys.d) {
+        if (dtap === 2) {
+            dtap = 3;
+        }
+        if (dtap === 1) {
+            dtap = 2;
+        }
+    } else {
+        dtap = 1;
+    }
+    if (keys.ArrowLeft) {chr.leftx -= 5 * delta * 60; chr.rightx -= 5 * delta * 60; if(dtap === 2){chr.leftx -= 150; chr.rightx -= 150;}}
+    if (keys.ArrowRight) {chr.leftx += 5 * delta * 60; chr.rightx += 5 * delta * 60; if(dtap === 2){chr.leftx += 150; chr.rightx += 150;}}
+    if (keys.ArrowUp) {chr.topy -= 5 * delta * 60; chr.boty -= 5 * delta * 60; if(dtap === 2){chr.topy -= 150; chr.boty -= 150;}}
+    if (keys.ArrowDown) {chr.topy += 5 * delta * 60; chr.boty += 5 * delta * 60; if(dtap === 2){chr.topy += 150; chr.boty += 150;}}
+    if (chr.topy <= 0) {chr.topy = 0; chr.boty = 15;}
+    if (chr.topy + chr.height >= 600) {chr.topy = 585; chr.boty = 600;}
+    if (chr.leftx <= 0) {chr.leftx = 0; chr.rightx = 15;}
+    if (chr.leftx + chr.width >= 1000) {chr.leftx = 985; chr.rightx = 1000;}
+    if (imm === false) {
+    blocks.forEach(blockObj => {
+        if (blockObj.exist === 3) { 
+            if (chr.rightx > blockObj.leftx && chr.leftx < blockObj.rightx && chr.topy < blockObj.boty && chr.boty > blockObj.topy) {
+                health -= 1;
+                imm = true;
+                setTimeout(() => imm = false, 1000);
+            }
+        }
+    });
+    balls.forEach(ballObj => {
+        if (ballObj.exist) { 
+            if (chr.rightx > ballObj.leftx && chr.leftx < ballObj.rightx && chr.topy < ballObj.boty && chr.boty > ballObj.topy) {
+                health -= 1;
+                imm = true;
+                setTimeout(() => imm = false, 1000);
+                
+            }
+        }
+    });
+    }
+    blocks.forEach(blockObj => {
+        if (blockObj.exist === 2) {
+            ctx.fillStyle = "pink";  
+            ctx.fillRect(blockObj.leftx, blockObj.topy, blockObj.width, blockObj.height);
+        }
+        if (blockObj.exist === 3) {
+            ctx.fillStyle = "red";  
+            ctx.fillRect(blockObj.leftx, blockObj.topy, blockObj.width, blockObj.height);
+        }
+    });
+    balls.forEach(ballObj => {
+        if (ballObj.exist) {
+            ctx.fillStyle = "red";
+            if (ballObj.shape != "circle") {
+            ctx.fillRect(ballObj.leftx, ballObj.topy, ballObj.width, ballObj.height);
+            }
+            if (ballObj.shape != "square") {
+            ctx.beginPath();
+            ctx.ellipse(ballObj.leftx + ballObj.width/2, ballObj.topy + ballObj.height/2, ballObj.width/1.7, ballObj.height/1.7, 0, 0, Math.PI * 2);
+	        ctx.fill();
+            ballObj.leftx += ballObj.xspeed * delta * 60;
+            ballObj.rightx += ballObj.xspeed * delta * 60;
+            ballObj.topy += ballObj.yspeed * delta * 60;
+            ballObj.boty += ballObj.yspeed * delta * 60;
+            }
+        }
+    });
+    if (health === 0) {
+        death();
+    }
+    ctx.fillStyle = "blue";
+    if (imm) {
+        ctx.fillStyle = "grey";
+    }
+    ctx.fillRect(chr.leftx, chr.topy, chr.width, chr.height);
+    if (health <= 3) {
+        ctx.fillStyle = "rgb(50, 50, 50)";
+        ctx.fillRect(chr.leftx + 7, chr.topy, 8, 7)
+    }
+    if (health <= 2) {
+        ctx.fillRect(chr.leftx + 7, chr.topy + 7, 8, 8)
+    }
+    if (health <= 1) {
+        ctx.fillRect(chr.leftx, chr.topy + 7, 7, 8)
+    }
+    requestAnimationFrame(frame);
+};
+
+
+        
+
